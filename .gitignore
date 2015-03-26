@@ -1,0 +1,12 @@
+tags
+*.o
+*.a
+*.run
+*.opt
+*.cm[aioxt]
+*.cmxa
+*.cmti
+*.annot
+.omakedb*
+*.omc
+tests/tests

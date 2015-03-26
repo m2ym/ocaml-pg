@@ -1,0 +1,5 @@
+.PHONY: test
+test: tests/tests
+    ./tests/tests $(CONNINFO)
+
+.SUBDIRS: lib tests

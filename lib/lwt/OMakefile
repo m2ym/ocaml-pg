@@ -1,0 +1,16 @@
+OCAMLPACKS[] += postgresql,lwt.unix
+
+OCAMLINCLUDES += ../core
+
+FILES[] = pg_lwt
+
+LIBRARY = $(OCamlLibrary pg_lwt, $(FILES))
+
+.DEFAULT: $(LIBRARY)
+
+.PHONY: clean
+
+clean::
+    rm -f \
+        $(filter-proper-targets $(glob $(addsuffix .*, $(FILES)))) \
+        $(LIBRARY)

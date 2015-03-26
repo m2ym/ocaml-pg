@@ -1,0 +1,14 @@
+OCAMLPACKS[] += postgresql
+
+FILES[] = pg
+
+LIBRARY = $(OCamlLibrary pg, $(FILES))
+
+.DEFAULT: $(LIBRARY)
+
+.PHONY: clean
+
+clean::
+    rm -f \
+        $(filter-proper-targets $(glob $(addsuffix .*, $(FILES)))) \
+        $(LIBRARY)
