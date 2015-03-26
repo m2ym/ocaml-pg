@@ -2,11 +2,11 @@ BYTE_ENABLED = true
 NATIVE_ENABLED = false
 
 USE_OCAMLFIND = true
-OCAMLPACKS[] += postgresql,lwt.unix
+OCAMLPACKS[] += postgresql,lwt.unix,yojson
 
 OCAMLFLAGS += -thread
 OCAMLINCLUDES += ../lib/core ../lib/lwt
 
-FILES[] = query
+FILES[] = basic
 
-.DEFAULT: $(OCamlProgram tests, ../lib/core/pg_value ../lib/core/pg $(FILES))
+.DEFAULT: $(OCamlProgram tests, ../lib/core/pg $(FILES))

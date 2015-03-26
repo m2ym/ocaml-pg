@@ -5,6 +5,7 @@ module Lwt_io : Pg.IO = struct
   let return = Lwt.return
   let bind = Lwt.bind
   let fail = Lwt.fail
+  let catch = Lwt.catch
 
   let channel fd = Lwt_unix.of_unix_file_descr fd
   let poll ev fd f =

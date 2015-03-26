@@ -1,5 +1,3 @@
-OCAMLPACKS[] += postgresql
-
 FILES[] = pg
 
 LIBRARY = $(OCamlLibrary pg, $(FILES))

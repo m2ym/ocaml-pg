@@ -1,4 +1,4 @@
-OCAMLPACKS[] += postgresql,lwt.unix
+OCAMLPACKS[] += lwt.unix
 
 OCAMLINCLUDES += ../core
 
