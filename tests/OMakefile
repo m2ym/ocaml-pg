@@ -4,9 +4,9 @@ NATIVE_ENABLED = false
 USE_OCAMLFIND = true
 OCAMLPACKS[] += postgresql,pgocaml,calendar,yojson,lwt.unix
 
-OCAMLFLAGS += -thread
+OCAMLCFLAGS += -g -thread
 OCAMLINCLUDES += ../lib/core ../lib/lwt
 
 FILES[] = basic
 
-.DEFAULT: $(OCamlProgram test, ../lib/core/pg $(FILES))
+.DEFAULT: $(OCamlProgram test, ../lib/core/pg ../lib/lwt/pg_lwt $(FILES))

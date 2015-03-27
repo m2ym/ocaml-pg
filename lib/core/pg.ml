@@ -228,10 +228,10 @@ module type IO = sig
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
 
   val channel : Unix.file_descr -> channel
-  val poll : [ `Read | `Write ] -> channel -> (unit -> 'a t) -> 'a t
+  val poll : [ `Read | `Write ] -> channel -> unit t
 end
 
-module type Pg = sig
+module type S = sig
   type t
   type 'a monad
   type isolation = [ `Serializable | `Repeatable_read | `Read_committed | `Read_uncommitted ]
@@ -306,7 +306,7 @@ module Make (IO : IO) = struct
           end else
             fail (Error "connection failed")
       and cont ev =
-        IO.poll ev t.sock (fun () -> try_with (fun () -> conn#connect_poll) >>= work)
+        IO.poll ev t.sock >>= fun () -> try_with (fun () -> conn#connect_poll) >>= work
       in cont `Write
     with exn -> fail exn
 
@@ -317,13 +317,10 @@ module Make (IO : IO) = struct
   let status t = t.conn#status
 
   let rec get_result t =
-    try
       t.conn#consume_input;
       if t.conn#is_busy
-      then IO.poll `Read t.sock (fun () -> get_result t)
+      then IO.poll `Read t.sock >>= fun () -> get_result t
       else return t.conn#get_result
-    with exn ->
-      fail exn
 
   let get_results t =
     let rec loop acc =
@@ -395,10 +392,10 @@ module Simple_io = struct
   let catch f g = try f () with exn -> g exn
 
   let channel fd = fd
-  let poll ev fd f =
+  let poll ev fd =
     match ev with
-    | `Read -> ignore (Unix.select [fd] [] [] (-1.0)); f ()
-    | `Write -> ignore (Unix.select [] [fd] [] (-1.0)); f ()
+    | `Read -> ignore (Unix.select [fd] [] [] (-1.0))
+    | `Write -> ignore (Unix.select [] [fd] [] (-1.0))
 end
 
 module M = Make (Simple_io)

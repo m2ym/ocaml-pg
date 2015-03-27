@@ -17,6 +17,6 @@ uninstall:
     ocamlfind remove pg
 
 test: tests/test
-    ./tests/test $(CONNINFO)
+    env OCAMLRUNPARAM=b ./tests/test $(CONNINFO)
 
 .SUBDIRS: lib tests

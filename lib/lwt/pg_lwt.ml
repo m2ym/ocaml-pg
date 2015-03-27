@@ -8,9 +8,9 @@ module Lwt_io = struct
   let catch = Lwt.catch
 
   let channel fd = Lwt_unix.of_unix_file_descr fd
-  let poll ev fd f =
+  let poll ev fd =
     let ev = match ev with `Read -> Lwt_unix.Read | `Write -> Lwt_unix.Write in
-    Lwt.bind (Lwt_unix.wrap_syscall ev fd f) (fun x -> x)
+    Lwt_unix.wrap_syscall ev fd (fun x -> x)
 end
 
 module M = Pg.Make (Lwt_io)

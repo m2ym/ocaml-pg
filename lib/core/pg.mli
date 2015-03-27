@@ -68,10 +68,10 @@ module type IO = sig
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
 
   val channel : Unix.file_descr -> channel
-  val poll : [ `Read | `Write ] -> channel -> (unit -> 'a t) -> 'a t
+  val poll : [ `Read | `Write ] -> channel -> unit t
 end
 
-module type Pg = sig
+module type S = sig
   type t
   type 'a monad
   type isolation = [ `Serializable | `Repeatable_read | `Read_committed | `Read_uncommitted ]
@@ -104,8 +104,9 @@ module type Pg = sig
 end
 
 module Make : functor (IO : IO) ->
-  Pg with type 'a monad = 'a IO.t
+  S with type 'a monad = 'a IO.t
 
 module Simple_io : IO
+  with type 'a t = 'a
 
-include Pg with type 'a monad = 'a
+include S with type 'a monad = 'a
