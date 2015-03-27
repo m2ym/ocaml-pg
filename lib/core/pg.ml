@@ -1,4 +1,5 @@
 open Postgresql
+open CalendarLib
 
 exception Error of string
 
@@ -12,79 +13,131 @@ module Value = struct
     | `Int64 of Int64.t
     | `Float of float
     | `String of string
+
+    | `Bool_array of bool option array
+    | `Int32_array of Int32.t option array
+    | `Int64_array of Int64.t option array
+    | `Float_array of float option array
+    | `String_array of string option array
+
+    | `Date of Date.t
+    | `Time of Time.t
+    | `Timestamp of Calendar.t
+    | `Timestamptz of Calendar.t * Time_Zone.t
+    | `Interval of Calendar.Period.t
+
     | `Json of Yojson.Basic.json
   ]
 
-  let pp ppf =
-    let open Format in
-    function
-    | `Null -> pp_print_string ppf "null"
-    | `Bool x -> pp_print_bool ppf x
-    | `Int x -> pp_print_int ppf x
-    | `Int16 x -> pp_print_int ppf x
-    | `Int32 x -> fprintf ppf "%ld" x
-    | `Int64 x -> fprintf ppf "%Ld" x
-    | `Float x -> pp_print_float ppf x
-    | `String x -> fprintf ppf "%S" x
-    | `Json x -> pp_print_string ppf (Yojson.Basic.pretty_to_string x)
-
-  let to_string t = Format.asprintf "%a" pp t
-
   module Text = struct
-    let null = "NULL"
-
-    let of_bool = string_of_bool
-    let of_int16 = Pervasives.string_of_int
-    let of_int32 = Int32.to_string
-    let of_int64 = Int64.to_string
-    let of_int x =
-      try Pervasives.string_of_int x
-      with _ ->
-        if Sys.word_size <= 32
-        then of_int32 (Int32.of_int x)
-        else of_int64 (Int64.of_int x)
-    let of_float = string_of_float
-    let of_string x = x
-    let of_json x = Yojson.Basic.to_string x
-
-    let to_bool = bool_of_string
-    let to_int16 = Pervasives.int_of_string
-    let to_int32 = Int32.of_string
-    let to_int64 = Int64.of_string
-    let to_float = float_of_string
-    let to_string s = s
-    let to_json s = Yojson.Basic.from_string s
+    (* TODO remove PGOCaml depepdency *)
+    module C = PGOCaml
 
     let encode = function
-      | `Null -> null
-      | `Bool x -> of_bool x
-      | `Int x -> of_int x
-      | `Int16 x -> of_int16 x
-      | `Int32 x -> of_int32 x
-      | `Int64 x -> of_int64 x
-      | `Float x -> of_float x
-      | `String x -> of_string x
-      | `Json x -> of_json x
+      | `Null -> "NULL"
+      | `Bool x -> C.string_of_bool x
+      | `Int x -> C.string_of_int x
+      | `Int16 x -> C.string_of_int16 x
+      | `Int32 x -> C.string_of_int32 x
+      | `Int64 x -> C.string_of_int64 x
+      | `Float x -> C.string_of_float x
+      | `String x -> C.string_of_string x
 
-    let decode s ftype : t =
+      | `Bool_array x -> C.string_of_bool_array (Array.to_list x)
+      | `Int32_array x -> C.string_of_int32_array (Array.to_list x)
+      | `Int64_array x -> C.string_of_int64_array (Array.to_list x)
+      | `Float_array x -> C.string_of_float_array (Array.to_list x)
+      | `String_array x -> C.string_of_string_array (Array.to_list x)
+
+      | `Date x -> C.string_of_date x
+      | `Time x -> C.string_of_time x
+      | `Timestamp x -> C.string_of_timestamp x
+      | `Timestamptz x -> C.string_of_timestamptz x
+      | `Interval x -> C.string_of_interval x
+
+      | `Json x -> Yojson.Basic.to_string x
+
+    let decode s oid : t =
       let open Postgresql in
-      match ftype with
-      | BOOL -> `Bool (to_bool s)
-      | INT2 -> `Int (to_int16 s)
-      | INT4 -> `Int32 (to_int32 s)
-      | INT8 -> `Int64 (to_int64 s)
-      | FLOAT4 -> `Float (to_float s)
-      | FLOAT8 -> `Float (to_float s)
-      | CHAR -> `String (to_string s)
-      | VARCHAR -> `String (to_string s)
-      | TEXT -> `String (to_string s)
-      | JSON -> `Json (to_json s)
-      | _ -> failwith (Printf.sprintf "unsupported field type: %s" (Postgresql.string_of_ftype ftype))
+      match oid with
+      | 16 ->
+        (* BOOL *)
+        `Bool (C.bool_of_string s)
+      | 21 ->
+        (* INT2 *)
+        `Int (C.int16_of_string s)
+      | 23 ->
+        (* INT4 *)
+        `Int32 (C.int32_of_string s)
+      | 20 ->
+        (* INT8 *)
+        `Int64 (C.int64_of_string s)
+      | 700 ->
+        (* FLOAT4 *)
+        `Float (C.float_of_string s)
+      | 701 ->
+        (* FLOAT8 *)
+        `Float (C.float_of_string s)
+      | 1042 ->
+        (* BPCHAR *)
+        `String (C.string_of_string s)
+      | 1043 ->
+        (* VARCHAR *)
+        `String (C.string_of_string s)
+      | 25 ->
+        (* TEXT *)
+        `String (C.string_of_string s)
+      | 1000 ->
+        (* BOOLARRAY *)
+        `Bool_array (Array.of_list (C.bool_array_of_string s))
+      | 1007 ->
+        (* INT4ARRAY *)
+        `Int32_array (Array.of_list  (C.int32_array_of_string s))
+      | 1016 ->
+        (* INT8ARRAY *)
+        `Int64_array (Array.of_list (C.int64_array_of_string s))
+      | 1021 ->
+        (* FLOAT4ARRAY *)
+        `Float_array (Array.of_list (C.float_array_of_string s))
+      | 1022 ->
+        (* FLOAT8ARRAY *)
+        `Float_array (Array.of_list (C.float_array_of_string s))
+      | 1009 ->
+        (* TEXTARRAY *)
+        `String_array (Array.of_list (C.string_array_of_string s))
+      | 1015 ->
+        (* VARCHARARRAY *)
+        `String_array (Array.of_list (C.string_array_of_string s))
+
+      | 1082 ->
+        (* DATE *)
+        `Date (C.date_of_string s)
+      | 1083 ->
+        (* TIME *)
+        `Time (C.time_of_string s)
+      | 1114 ->
+        (* TIMESTAMP *)
+        `Timestamp (C.timestamp_of_string s)
+      | 1184 ->
+        (* TIMESTAMPTZ *)
+        `Timestamptz (C.timestamptz_of_string s)
+      | 1186 ->
+        (* INTERVAL *)
+        `Interval (C.interval_of_string s)
+
+      | 114 ->
+        (* JSON *)
+        `Json (Yojson.Basic.from_string s)
+      | _ -> failwith (Printf.sprintf "unsupported field type oid: %d" oid)
   end
+
+  let to_string t = Text.encode t
+
+  let pp ppf t = Format.pp_print_string ppf (to_string t)
 end
 
 class result res =
-  let ftypes = Array.init res#nfields res#ftype in
+  let foids = Array.init res#nfields res#ftype_oid in
 object (self)
   method check =
     if not (res#status = Command_ok || res#status = Tuples_ok) then
@@ -94,7 +147,7 @@ object (self)
     Array.map
       (fun tuple ->
          Array.mapi
-           (fun i s -> Value.Text.decode s ftypes.(i))
+           (fun i s -> Value.Text.decode s foids.(i))
            tuple)
       res#get_all
 
@@ -102,7 +155,7 @@ object (self)
     List.map
       (fun tuple ->
          List.mapi
-           (fun i s -> Value.Text.decode s ftypes.(i))
+           (fun i s -> Value.Text.decode s foids.(i))
            tuple)
       res#get_all_lst
 

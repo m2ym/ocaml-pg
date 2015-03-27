@@ -1,7 +1,7 @@
 BYTE_ENABLED = true
 
 USE_OCAMLFIND = true
-OCAMLPACKS[] += postgresql,yojson
+OCAMLPACKS[] += postgresql,pgocaml,calendar,yojson
 
 OCAMLFLAGS += -thread
 

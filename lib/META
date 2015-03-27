@@ -2,7 +2,7 @@ description = "A simple synchronous/asynchronous PostrgeSQL client"
 version = "dev"
 archive(byte) = "pg.cma"
 archive(native) = "pg.cmxa"
-requires = "postgresql,yojson"
+requires = "postgresql,pgocaml,calendar,yojson"
 
 package "lwt" (
   description = "ocaml-pg lwt"
