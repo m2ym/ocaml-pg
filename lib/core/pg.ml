@@ -2,27 +2,7 @@ open Postgresql
 
 exception Error of string
 
-module Value : sig
-  type t = [
-    | `Null
-    | `Bool of bool
-    | `Int of int
-    | `Int16 of int
-    | `Int32 of Int32.t
-    | `Int64 of Int64.t
-    | `Float of float
-    | `String of string
-    | `Json of Yojson.Basic.json
-  ]
-
-  val pp : Format.formatter -> t -> unit
-  val to_string : t -> string
-
-  module Text : sig
-    val encode : t -> string
-    val decode : string -> Postgresql.ftype -> t
-  end
-end = struct
+module Value = struct
   type t = [
     | `Null
     | `Bool of bool
@@ -86,7 +66,7 @@ end = struct
       | `String x -> of_string x
       | `Json x -> of_json x
 
-    let decode s ftype =
+    let decode s ftype : t =
       let open Postgresql in
       match ftype with
       | BOOL -> `Bool (to_bool s)
@@ -114,7 +94,7 @@ object (self)
     Array.map
       (fun tuple ->
          Array.mapi
-           (fun i value -> Value.Text.decode value ftypes.(i))
+           (fun i s -> Value.Text.decode s ftypes.(i))
            tuple)
       res#get_all
 
@@ -122,7 +102,7 @@ object (self)
     List.map
       (fun tuple ->
          List.mapi
-           (fun i value -> Value.Text.decode value ftypes.(i))
+           (fun i s -> Value.Text.decode s ftypes.(i))
            tuple)
       res#get_all_lst
 
@@ -167,6 +147,7 @@ module Result = struct
 
   let to_array t = t#to_array
   let to_list t = t#to_list
+
   let pp ppf t = t#pp ppf
   let to_string t = t#to_string
 end
@@ -181,7 +162,40 @@ module type IO = sig
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
 
   val channel : Unix.file_descr -> channel
-  val poll : [`Read | `Write] -> channel -> (unit -> 'a t) -> 'a t
+  val poll : [ `Read | `Write ] -> channel -> (unit -> 'a t) -> 'a t
+end
+
+module type Pg = sig
+  type t
+  type 'a monad
+  type isolation = [ `Serializable | `Repeatable_read | `Read_committed | `Read_uncommitted ]
+  type access = [ `Read_write | `Read_only ]
+
+  val connect :
+    ?host : string ->
+    ?hostaddr : string ->
+    ?port : string ->
+    ?dbname : string ->
+    ?user : string ->
+    ?password : string ->
+    ?options : string ->
+    ?tty : string ->
+    ?requiressl : string ->
+    ?conninfo : string ->
+    unit ->
+    t monad
+
+  val close : t -> unit monad
+
+  val connection : t -> Postgresql.connection
+  val status : t -> Postgresql.connection_status
+
+  val exec : t -> ?check_result : bool -> ?params : Value.t list -> string -> Result.t monad
+
+  val begin_work : ?isolation : isolation -> ?access : access -> ?deferrable : bool -> t -> unit monad
+  val commit : t -> unit monad
+  val rollback : t -> unit monad
+  val transact : t -> ?isolation : isolation -> ?access : access -> ?deferrable : bool -> (t -> 'a monad) -> 'a monad
 end
 
 module Make (IO : IO) = struct
@@ -189,6 +203,9 @@ module Make (IO : IO) = struct
     conn : connection;
     sock : IO.channel
   }
+  type 'a monad = 'a IO.t
+  type isolation = [ `Serializable | `Repeatable_read | `Read_committed | `Read_uncommitted ]
+  type access = [ `Read_write | `Read_only ]
 
   let return = IO.return
   let (>>=) = IO.bind
@@ -228,6 +245,10 @@ module Make (IO : IO) = struct
     with exn -> fail exn
 
   let close t = try_with (fun () -> t.conn#finish)
+
+  let connection t = t.conn
+
+  let status t = t.conn#status
 
   let rec get_result t =
     try

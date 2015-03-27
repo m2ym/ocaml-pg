@@ -1,4 +1,4 @@
-module Lwt_io : Pg.IO = struct
+module Lwt_io = struct
   type 'a t = 'a Lwt.t
   type channel = Lwt_unix.file_descr
 
