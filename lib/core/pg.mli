@@ -10,6 +10,7 @@ module Value : sig
     | `Int64 of Int64.t
     | `Float of float
     | `String of string
+    | `Bytea of string
 
     | `Bool_array of bool option array
     | `Int32_array of Int32.t option array
@@ -23,7 +24,7 @@ module Value : sig
     | `Timestamptz of CalendarLib.Calendar.t * CalendarLib.Time_Zone.t
     | `Interval of CalendarLib.Calendar.Period.t
 
-    | `Json of Yojson.Basic.json
+    | `Json of Yojson.Safe.json
   ]
 
   val pp : Format.formatter -> t -> unit

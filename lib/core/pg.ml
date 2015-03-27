@@ -13,6 +13,7 @@ module Value = struct
     | `Int64 of Int64.t
     | `Float of float
     | `String of string
+    | `Bytea of string
 
     | `Bool_array of bool option array
     | `Int32_array of Int32.t option array
@@ -26,7 +27,7 @@ module Value = struct
     | `Timestamptz of Calendar.t * Time_Zone.t
     | `Interval of Calendar.Period.t
 
-    | `Json of Yojson.Basic.json
+    | `Json of Yojson.Safe.json
   ]
 
   module Text = struct
@@ -42,6 +43,7 @@ module Value = struct
       | `Int64 x -> C.string_of_int64 x
       | `Float x -> C.string_of_float x
       | `String x -> C.string_of_string x
+      | `Bytea x -> C.string_of_bytea x
 
       | `Bool_array x -> C.string_of_bool_array (Array.to_list x)
       | `Int32_array x -> C.string_of_int32_array (Array.to_list x)
@@ -55,7 +57,7 @@ module Value = struct
       | `Timestamptz x -> C.string_of_timestamptz x
       | `Interval x -> C.string_of_interval x
 
-      | `Json x -> Yojson.Basic.to_string x
+      | `Json x -> Yojson.Safe.to_string x
 
     let decode s oid : t =
       let open Postgresql in
@@ -87,6 +89,10 @@ module Value = struct
       | 25 ->
         (* TEXT *)
         `String (C.string_of_string s)
+      | 17 ->
+        (* BYTEA *)
+        `Bytea (C.bytea_of_string s)
+
       | 1000 ->
         (* BOOLARRAY *)
         `Bool_array (Array.of_list (C.bool_array_of_string s))
@@ -127,7 +133,7 @@ module Value = struct
 
       | 114 ->
         (* JSON *)
-        `Json (Yojson.Basic.from_string s)
+        `Json (Yojson.Safe.from_string s)
       | _ -> failwith (Printf.sprintf "unsupported field type oid: %d" oid)
   end
 
