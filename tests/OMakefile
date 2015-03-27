@@ -9,4 +9,4 @@ OCAMLINCLUDES += ../lib/core ../lib/lwt
 
 FILES[] = basic
 
-.DEFAULT: $(OCamlProgram tests, ../lib/core/pg $(FILES))
+.DEFAULT: $(OCamlProgram test, ../lib/core/pg $(FILES))

@@ -1,0 +1,13 @@
+description = "A simple synchronous/asynchronous PostrgeSQL client"
+version = "dev"
+archive(byte) = "pg.cma"
+archive(native) = "pg.cmxa"
+requires = "postgresql,yojson"
+
+package "lwt" (
+  description = "ocaml-pg lwt"
+  version = "[distributed with pg]"
+  requires = "pg,lwt.unix"
+  archive(byte) = "pg_lwt.cma"
+  archive(native) = "pg_lwt.cmxa"
+)

@@ -1,0 +1,19 @@
+opam-version: "1.2"
+maintainer: "Tomohiro Matsuyama <m2ym.pub@gmail.com>"
+author: "Tomohiro Matsuyama <m2ym.pub@gmail.com>"
+name: "pg"
+version: "0.0.1"
+homepage: "https://github.com/m2ym/ocaml-pg"
+bug-reports: "https://github.com/m2ym/ocaml-pg/issues"
+license: "MIT"
+build: [omake]
+install: [omake "install"]
+remove: ["ocamlfind" "remove" "ppx_monad"]
+depends: [
+  "omake"
+  "ocamlfind"
+  "postgresql" {>= "3.1.0"}
+  "yojson"
+  "lwt"
+]
+ocaml-version: [>= "4.02.0"]
