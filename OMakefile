@@ -10,8 +10,8 @@ build: $(LIBS)
 install: build
     ocamlfind install -patch-version $(VERSION) pg \
         lib/META \
-        lib/core/pg.cma lib/core/pg.cmxa lib/core/pg.cmi \
-        lib/lwt/pg_lwt.cma lib/lwt/pg_lwt.cmxa lib/lwt/pg_lwt.cmi
+        lib/core/pg.a lib/core/pg.cma lib/core/pg.cmxa lib/core/pg.cmi \
+        lib/lwt/pg_lwt.a lib/lwt/pg_lwt.cma lib/lwt/pg_lwt.cmxa lib/lwt/pg_lwt.cmi
 
 uninstall:
     ocamlfind remove pg
