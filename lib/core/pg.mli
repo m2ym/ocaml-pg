@@ -12,11 +12,11 @@ module Value : sig
     | `String of string
     | `Bytea of string
 
-    | `Bool_array of bool option array
-    | `Int32_array of Int32.t option array
-    | `Int64_array of Int64.t option array
-    | `Float_array of float option array
-    | `String_array of string option array
+    | `Bool_array of bool option list
+    | `Int32_array of Int32.t option list
+    | `Int64_array of Int64.t option list
+    | `Float_array of float option list
+    | `String_array of string option list
 
     | `Date of CalendarLib.Date.t
     | `Time of CalendarLib.Time.t

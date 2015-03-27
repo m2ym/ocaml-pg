@@ -15,11 +15,11 @@ module Value = struct
     | `String of string
     | `Bytea of string
 
-    | `Bool_array of bool option array
-    | `Int32_array of Int32.t option array
-    | `Int64_array of Int64.t option array
-    | `Float_array of float option array
-    | `String_array of string option array
+    | `Bool_array of bool option list
+    | `Int32_array of Int32.t option list
+    | `Int64_array of Int64.t option list
+    | `Float_array of float option list
+    | `String_array of string option list
 
     | `Date of Date.t
     | `Time of Time.t
@@ -35,7 +35,7 @@ module Value = struct
     module C = PGOCaml
 
     let encode = function
-      | `Null -> "NULL"
+      | `Null -> Postgresql.null
       | `Bool x -> C.string_of_bool x
       | `Int x -> C.string_of_int x
       | `Int16 x -> C.string_of_int16 x
@@ -45,11 +45,11 @@ module Value = struct
       | `String x -> C.string_of_string x
       | `Bytea x -> C.string_of_bytea x
 
-      | `Bool_array x -> C.string_of_bool_array (Array.to_list x)
-      | `Int32_array x -> C.string_of_int32_array (Array.to_list x)
-      | `Int64_array x -> C.string_of_int64_array (Array.to_list x)
-      | `Float_array x -> C.string_of_float_array (Array.to_list x)
-      | `String_array x -> C.string_of_string_array (Array.to_list x)
+      | `Bool_array x -> C.string_of_bool_array x
+      | `Int32_array x -> C.string_of_int32_array x
+      | `Int64_array x -> C.string_of_int64_array x
+      | `Float_array x -> C.string_of_float_array x
+      | `String_array x -> C.string_of_string_array x
 
       | `Date x -> C.string_of_date x
       | `Time x -> C.string_of_time x
@@ -60,7 +60,6 @@ module Value = struct
       | `Json x -> Yojson.Safe.to_string x
 
     let decode s oid : t =
-      let open Postgresql in
       match oid with
       | 16 ->
         (* BOOL *)
@@ -95,25 +94,25 @@ module Value = struct
 
       | 1000 ->
         (* BOOLARRAY *)
-        `Bool_array (Array.of_list (C.bool_array_of_string s))
+        `Bool_array (C.bool_array_of_string s)
       | 1007 ->
         (* INT4ARRAY *)
-        `Int32_array (Array.of_list  (C.int32_array_of_string s))
+        `Int32_array (C.int32_array_of_string s)
       | 1016 ->
         (* INT8ARRAY *)
-        `Int64_array (Array.of_list (C.int64_array_of_string s))
+        `Int64_array (C.int64_array_of_string s)
       | 1021 ->
         (* FLOAT4ARRAY *)
-        `Float_array (Array.of_list (C.float_array_of_string s))
+        `Float_array (C.float_array_of_string s)
       | 1022 ->
         (* FLOAT8ARRAY *)
-        `Float_array (Array.of_list (C.float_array_of_string s))
+        `Float_array (C.float_array_of_string s)
       | 1009 ->
         (* TEXTARRAY *)
-        `String_array (Array.of_list (C.string_array_of_string s))
+        `String_array (C.string_array_of_string s)
       | 1015 ->
         (* VARCHARARRAY *)
-        `String_array (Array.of_list (C.string_array_of_string s))
+        `String_array (C.string_array_of_string s)
 
       | 1082 ->
         (* DATE *)
@@ -137,7 +136,9 @@ module Value = struct
       | _ -> failwith (Printf.sprintf "unsupported field type oid: %d" oid)
   end
 
-  let to_string t = Text.encode t
+  let to_string = function
+    | `Null -> "NULL"
+    | t -> Text.encode t
 
   let pp ppf t = Format.pp_print_string ppf (to_string t)
 end
@@ -150,18 +151,24 @@ object (self)
       raise (Error res#error)
 
   method to_array =
-    Array.map
-      (fun tuple ->
+    Array.mapi
+      (fun i tuple ->
          Array.mapi
-           (fun i s -> Value.Text.decode s foids.(i))
+           (fun j s ->
+              if res#getisnull i j
+              then `Null
+              else Value.Text.decode s foids.(j))
            tuple)
       res#get_all
 
   method to_list =
-    List.map
-      (fun tuple ->
+    List.mapi
+      (fun i tuple ->
          List.mapi
-           (fun i s -> Value.Text.decode s foids.(i))
+           (fun j s ->
+              if res#getisnull i j
+              then `Null
+              else Value.Text.decode s foids.(j))
            tuple)
       res#get_all_lst
 
@@ -172,7 +179,7 @@ object (self)
       Array.to_list
         (Array.init nfields
            (fun i ->
-              let s = res#fname i in
+              let s = Printf.sprintf "%s (%d)" (res#fname i) foids.(i) in
               widths.(i) <- String.length s;
               s))
     in
@@ -191,7 +198,7 @@ object (self)
     in
     let spaces = String.make 1000 ' ' in
     let pad i s = s ^ String.sub spaces 0 (max 0 (widths.(i) - String.length s)) in
-    let row tuple = String.concat " | " (List.mapi pad tuple) in
+    let row tuple = " " ^ String.concat " | " (List.mapi pad tuple) ^ " " in
     Format.fprintf ppf "%s@." (row header);
     Format.fprintf ppf "%s@." (String.make (String.length (row header)) '-');
     List.iter

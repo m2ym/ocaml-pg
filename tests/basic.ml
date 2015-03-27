@@ -7,6 +7,9 @@ let query ?params query = Pg.exec conn ?params query
 let show res = Format.printf "%t@." res#pp
 
 let () =
+  assert ((query {|SELECT NULL::BOOLEAN|})#to_list = [[`Null]])
+
+let () =
   run {|CREATE TEMPORARY TABLE foo (id SERIAL PRIMARY KEY, x INTEGER NOT NULL, y TEXT NOT NULL)|};
   run {|INSERT INTO foo (x, y) VALUES ($1, $2)|} ~params:[`Int 42; `String "Hello"];
   show @@ query {|SELECT * FROM foo|};
