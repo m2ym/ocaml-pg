@@ -306,7 +306,7 @@ module Make (IO : IO) = struct
           end else
             fail (Error "connection failed")
       and cont ev =
-        IO.poll ev t.sock >>= fun () -> try_with (fun () -> conn#connect_poll) >>= work
+        IO.poll ev t.sock >>= fun () -> work conn#connect_poll
       in cont `Write
     with exn -> fail exn
 
@@ -316,11 +316,16 @@ module Make (IO : IO) = struct
 
   let status t = t.conn#status
 
+  let rec flush t =
+    try_with (fun () -> t.conn#flush) >>= function
+    | Successful -> return ()
+    | Data_left_to_send -> IO.poll `Write t.sock >>= fun () -> flush t
+
   let rec get_result t =
-      t.conn#consume_input;
-      if t.conn#is_busy
-      then IO.poll `Read t.sock >>= fun () -> get_result t
-      else return t.conn#get_result
+    t.conn#consume_input;
+    if t.conn#is_busy
+    then IO.poll `Read t.sock >>= fun () -> get_result t
+    else return t.conn#get_result
 
   let get_results t =
     let rec loop acc =
@@ -338,6 +343,7 @@ module Make (IO : IO) = struct
   let exec t ?(check_result = true) ?(params = []) query =
     let params = Array.of_list (List.map Value.Text.encode params) in
     try_with (fun () -> t.conn#send_query ~params query) >>= fun () ->
+    flush t >>= fun () ->
     get_single_result t >>= fun res ->
     let res = new result res in
     if check_result then res#check;
