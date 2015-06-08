@@ -8,7 +8,7 @@ bug-reports: "https://github.com/m2ym/ocaml-pg/issues"
 license: "MIT"
 build: [omake]
 install: [omake "install"]
-remove: ["ocamlfind" "remove" "ppx_monad"]
+remove: ["ocamlfind" "remove" "pg"]
 depends: [
   "omake"
   "ocamlfind"
