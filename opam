@@ -6,8 +6,8 @@ version: "0.0.1"
 homepage: "https://github.com/m2ym/ocaml-pg"
 bug-reports: "https://github.com/m2ym/ocaml-pg/issues"
 license: "MIT"
-build: [omake]
-install: [omake "install"]
+build: ["omake"]
+install: ["omake" "install"]
 remove: ["ocamlfind" "remove" "pg"]
 depends: [
   "omake"
